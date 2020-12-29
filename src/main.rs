@@ -5,10 +5,11 @@ extern crate time;
 use time::{Tm, now};
 use std::{io, env};
 use std::sync::Mutex;
-use actix_web::{HttpServer, App, middleware, web, Result, get, post, HttpResponse};
+use actix_web::{HttpServer, App, middleware, web, Result, get, post, HttpResponse, http};
 use serde::{Deserialize, Serialize};
 use serialport::{DataBits, StopBits, Parity};
 use crate::arm::RoboticArm;
+use actix_cors::Cors;
 
 #[get("/name")]
 async fn hello(
@@ -51,7 +52,10 @@ async fn handle_rotate(
 ) -> HttpResponse {
   let mut arm = share_arm.lock().unwrap();
   match arm.rotate(body.index, body.clockwise) {
-    Ok(_) => HttpResponse::Ok().json(ResponseBody::new("rotate", "OK")),
+    Ok(_) => {
+      println!("Rotate: {} {}", body.index, body.clockwise);
+      HttpResponse::Ok().json(ResponseBody::new("rotate", "OK"))
+    },
     _ => HttpResponse::InternalServerError().finish()
   }
 }
@@ -76,7 +80,10 @@ async fn handle_command(
     return HttpResponse::BadRequest().finish();
   };
   match result {
-    Ok(_) => HttpResponse::Ok().json(ResponseBody::new("rotate", "OK")),
+    Ok(_) => {
+      println!("Command: {}", command);
+      HttpResponse::Ok().json(ResponseBody::new(command.as_str(), "OK"))
+    },
     _ => HttpResponse::InternalServerError().finish()
   }
 }
@@ -110,6 +117,12 @@ async fn main() -> io::Result<()> {
   HttpServer::new(move || {
     App::new()
       .wrap(middleware::Logger::default())
+      .wrap(Cors::default()
+              .allowed_origin("http://localhost:3000")
+              .allowed_methods(vec!["GET", "POST"])
+              .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+              .allowed_header(http::header::CONTENT_TYPE)
+              .max_age(3600))
       .data(web::JsonConfig::default().limit(4096))
       .app_data(arm.clone())
       .service(hello)
