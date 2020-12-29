@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use serialport::{DataBits, StopBits, Parity};
 use crate::arm::RoboticArm;
 use actix_cors::Cors;
+use std::time::Duration;
 
 #[get("/name")]
 async fn hello(
@@ -36,6 +37,33 @@ impl ResponseBody {
       command: String::from(command),
       status: String::from(message)
     }
+  }
+}
+
+#[derive(Serialize)]
+struct AnglesResponseBody {
+  timestamp: String,
+  command: String,
+  status: String,
+  message: String
+}
+
+#[get("/angles")]
+async fn get_angles(
+  share_arm: web::Data<Mutex<RoboticArm>>
+) -> HttpResponse {
+  let mut arm = share_arm.lock().unwrap();
+  match arm.get_angles() {
+    Ok(str) => {
+      println!("Get angles: {}", str);
+      HttpResponse::Ok().json(AnglesResponseBody {
+        command: "angles".to_string(),
+        status: "OK".to_string(),
+        message: str,
+        timestamp: now().rfc3339().to_string()
+      })
+    }
+    _ => HttpResponse::InternalServerError().finish()
   }
 }
 
@@ -68,19 +96,19 @@ async fn handle_command(
   let mut arm = share_arm.lock().unwrap();
   let result = if command == String::from("hold") {
     arm.hold()
-  } else if command == String::from("put") {
+  } else if command == "put" {
     arm.put()
-  } else if command == String::from("reset") {
+  } else if command == "reset" {
     arm.reset()
-  } else if command == String::from("start_conveyor_belt") {
+  } else if command == "start_conveyor_belt" {
     arm.start_conveyor_belt()
-  } else if command == String::from("stop_conveyor_belt") {
+  } else if command == "stop_conveyor_belt" {
     arm.stop_conveyor_belt()
-  } else if command == String::from("carry_one_box") {
+  } else if command == "carry_one_box" {
     arm.carry_one_box()
-  } else if command == String::from("carry_many_boxes") {
+  } else if command == "carry_many_boxes" {
     arm.carry_many_boxes()
-  } else if command == String::from("change_mode") {
+  } else if command == "change_mode" {
     arm.change_mode()
   } else {
     return HttpResponse::BadRequest().finish();
@@ -110,6 +138,7 @@ async fn main() -> io::Result<()> {
     .data_bits(DataBits::Eight)
     .stop_bits(StopBits::One)
     .parity(Parity::None)
+    .timeout(Duration::from_millis(1000))
     .open()
     .expect("Error: Failed to connect serial port");
 
@@ -132,6 +161,7 @@ async fn main() -> io::Result<()> {
       .data(web::JsonConfig::default().limit(4096))
       .app_data(arm.clone())
       .service(hello)
+      .service(get_angles)
       .service(handle_rotate)
       .service(handle_command)
   })

@@ -1,5 +1,5 @@
 use serialport::SerialPort;
-use std::io::{ Result, Error, ErrorKind };
+use std::io::{Result, Error, ErrorKind};
 
 pub struct RoboticArm {
   serialport: Box<dyn SerialPort>
@@ -31,6 +31,30 @@ impl RoboticArm {
     }
   }
 
+  fn receive(&mut self) -> Result<String> {
+    let mut serial_buf: Vec<u8> = vec![0; 128];
+    match self.serialport.read(serial_buf.as_mut_slice()) {
+      Ok(_) => match String::from_utf8(serial_buf) {
+        Ok(str) => Ok(str),
+        Err(_) => {
+          println!("Error: receive invalid data");
+          Err(Error::new(ErrorKind::InvalidData, "Error: receive invalid data"))
+        }
+      },
+      Err(e) => {
+        println!("Error: failed to receive data");
+        Err(e)
+      }
+    }
+  }
+
+  pub fn get_angles(&mut self) -> Result<String> {
+    match self.send(0x7f) {
+      Ok(_) => self.receive(),
+      Err(e) => Err(e)
+    }
+  }
+
   pub fn name(&self) -> Option<String> {
     self.serialport.name()
   }
@@ -50,7 +74,7 @@ impl RoboticArm {
       (5, 0) => 0x43,
       (5, 1) => 0x56,
       _ => {
-        return Err(Error::new(ErrorKind::InvalidInput, "Error: not a valid rotate"))
+        return Err(Error::new(ErrorKind::InvalidInput, "Error: not a valid rotate"));
       }
     };
     self.send(command)
