@@ -76,6 +76,12 @@ async fn handle_command(
     arm.start_conveyor_belt()
   } else if command == String::from("stop_conveyor_belt") {
     arm.stop_conveyor_belt()
+  } else if command == String::from("carry_one_box") {
+    arm.carry_one_box()
+  } else if command == String::from("carry_many_boxes") {
+    arm.carry_many_boxes()
+  } else if command == String::from("change_mode") {
+    arm.change_mode()
   } else {
     return HttpResponse::BadRequest().finish();
   };

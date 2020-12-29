@@ -37,18 +37,18 @@ impl RoboticArm {
 
   pub fn rotate(&mut self, index: i32, clockwise: i32) -> Result<()> {
     let command = match (index, clockwise) {
-      (0, 0) => 0x51,
-      (0, 1) => 0x57,
-      (1, 0) => 0x41,
-      (1, 1) => 0x53,
-      (2, 0) => 0x5a,
-      (2, 1) => 0x58,
-      (3, 0) => 0x52,
-      (3, 1) => 0x45,
-      (4, 0) => 0x46,
-      (4, 1) => 0x44,
-      (5, 0) => 0x56,
-      (5, 1) => 0x43,
+      (0, 0) => 0x57,
+      (0, 1) => 0x51,
+      (1, 0) => 0x53,
+      (1, 1) => 0x41,
+      (2, 0) => 0x58,
+      (2, 1) => 0x5a,
+      (3, 0) => 0x45,
+      (3, 1) => 0x52,
+      (4, 0) => 0x44,
+      (4, 1) => 0x46,
+      (5, 0) => 0x43,
+      (5, 1) => 0x56,
       _ => {
         return Err(Error::new(ErrorKind::InvalidInput, "Error: not a valid rotate"))
       }
@@ -74,5 +74,17 @@ impl RoboticArm {
 
   pub fn stop_conveyor_belt(&mut self) -> Result<()> {
     self.send(0x4c)
+  }
+
+  pub fn carry_one_box(&mut self) -> Result<()> {
+    self.send(0x64)
+  }
+
+  pub fn carry_many_boxes(&mut self) -> Result<()> {
+    self.send(0x65)
+  }
+
+  pub fn change_mode(&mut self) -> Result<()> {
+    self.send(0x7c)
   }
 }
