@@ -32,7 +32,7 @@ impl RoboticArm {
   }
 
   fn receive(&mut self) -> Result<String> {
-    let mut serial_buf: Vec<u8> = vec![0; 128];
+    let mut serial_buf: Vec<u8> = vec![0; 256];
     match self.serialport.read(serial_buf.as_mut_slice()) {
       Ok(_) => match String::from_utf8(serial_buf) {
         Ok(str) => Ok(str),
